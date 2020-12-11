@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 #import matplotlib as pyplot
 from sklearn import datasets, linear_model
 from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error
 
 # Read DataSet
 
@@ -67,7 +68,12 @@ data_train_x, data_test_x, data_train_y, data_test_y = train_test_split(data_x, 
 ### Temp variable
 data_train_x_head = data_train_x.head(10)
 
+# Linear Regression
+
 regr = linear_model.LinearRegression()
 regr.fit(data_train_x, data_train_y)
 #print(regr.coef_)
 print(f'R2 is {regr.score(data_train_x, data_train_y)}')
+prediction = regr.predict(data_test_x)
+mse =  mean_squared_error(data_test_y, prediction)
+print(f'MSE is {mse}')
