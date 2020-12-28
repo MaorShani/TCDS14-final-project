@@ -16,10 +16,13 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
 from sklearn.ensemble import RandomForestRegressor
 from sklearn import tree
+from sklearn.linear_model import RidgeCV
+from sklearn.linear_model import LassoCV
+from sklearn.model_selection import RepeatedKFold
 
 # Read DataSet
 
-data=pd.read_csv('C:/Users/maors/Documents/Maor/Data Science/Final Project/Data Sets/train.csv')
+data=pd.read_csv('C:/Users/maors/Documents/Maor/Data Science/Final Project/Data Sets/data.csv')
 
 ##### Read Data From Daniella Computer
 #data=pd.read_csv('C:/Users/USER/Desktop/bfsp1.csv')
@@ -46,7 +49,7 @@ plt.show()
 
 plt.hist(data['Purchase'])
 plt.xlabel("Purchase")
-plt.ylabel("Count")
+#plt.ylabel("Count")
 plt.title("Purchace Histogram")
 
 plt.show()
@@ -63,6 +66,9 @@ cat2=pd.get_dummies(data['Product_Category_2'],dummy_na=False)
 cat3=pd.get_dummies(data['Product_Category_3'],dummy_na=False)
 
 pro_cat=pd.concat([cat1,cat2,cat3]).groupby(level=0).any().astype(int)
+
+pro_cat.columns = ['Cat ' + str(col) for col in pro_cat.columns]
+pro_cat.columns = pro_cat.columns.str.strip('.0')
 
 ### Some temporary data exploration
 #pro_cat.head(30)
@@ -87,6 +93,12 @@ data_train_x, data_test_x, data_train_y, data_test_y = train_test_split(data_x, 
 ### Temp variable
 data_train_x_head = data_train_x.head(10)
 
+# Create Baseline for comparison
+# Baseline set to the average purchach in the test set
+
+average_purchase = np.full(len(data_test_y),data_test_y["Purchase"].mean())
+mse_baseline = mean_squared_error(data_test_y,average_purchase)
+
 # Linear Regression
 
 regr = linear_model.LinearRegression()
@@ -102,7 +114,7 @@ print(f'MSE is {mse}')
 data_train_y_np = np.array(data_train_y)
 data_train_x_np = np.array(data_train_x)
 
-rf = RandomForestRegressor(max_depth = 5)
+rf = RandomForestRegressor(max_depth = 15)
 rf.fit(data_train_x_np, data_train_y_np)
 prediction_rf = rf.predict(data_test_x)
 mse_rf =  mean_squared_error(data_test_y, prediction_rf)
@@ -115,7 +127,7 @@ tree.plot_tree(rf.estimators_[5],
                feature_names = fn, 
                class_names=cn,
                filled = True);
-#fig.savefig('C:/Users/maors/Documents/Maor/Data Science/Final Project/rf_individualtree.png')
+fig.savefig('Fig/rf_individualtree.png')
 
 importances = list(rf.feature_importances_)
 feature_importances = [(data_train_x, round(importance, 4)) for data_train_x, importance in zip(fn, importances)]
@@ -151,3 +163,22 @@ prediction = regr.predict(data_test_x_reduced)
 mse =  mean_squared_error(data_test_y, prediction)
 print(f'new MSE is {mse}')
 
+# Ridge Regression 
+
+cv = RepeatedKFold(n_splits=10, n_repeats=3, random_state=1)
+ridge = RidgeCV(alphas=np.arange(0.1, 1, 0.1), cv=cv, scoring='neg_mean_squared_error')
+ridge.fit(data_train_x, data_train_y)
+prediction = ridge.predict(data_test_x)
+mse_ridge =  mean_squared_error(data_test_y, prediction)
+print(f'Ridsge MSE is {mse_ridge}')
+print(f'alpha is {ridge.alpha_}')
+
+# Lasso Regression 
+
+cv = RepeatedKFold(n_splits=10, n_repeats=3, random_state=1)
+lasso = LassoCV(alphas=np.arange(0.1, 1, 0.2), cv=cv)
+lasso.fit(data_train_x, data_train_y)
+prediction = lasso.predict(data_test_x)
+mse_lasso =  mean_squared_error(data_test_y, prediction)
+print(f'Lasso MSE is {mse_lasso}')
+print(f'alpha is {lasso.alpha_}')
